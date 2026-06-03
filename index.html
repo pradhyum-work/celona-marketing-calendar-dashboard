@@ -42,7 +42,7 @@ a.url{color:var(--blue);font-size:11.5px;text-decoration:none}a.url:hover{text-d
 .kind.Task{background:#e7f8f4;color:#0c7a66}
 .evtype{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#e8edff;color:#33489c}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
-.c-ns{background:var(--nsbg);color:var(--ns)}.c-ip{background:var(--ipbg);color:var(--ip)}.c-bl{background:var(--blkbg);color:var(--blk)}.c-cp{background:var(--okbg);color:var(--ok)}
+.c-ns{background:var(--nsbg);color:var(--ns)}.c-ip{background:var(--ipbg);color:var(--ip)}.c-bl{background:var(--blkbg);color:var(--blk)}.c-cp{background:var(--okbg);color:var(--ok)}.c-na{background:#fde2e2;color:#b42318}
 select.st,select.pr{border:none;font-weight:600;border-radius:20px;padding:3px 8px;font-size:11.5px}
 .pr.P0{background:var(--p0bg);color:var(--p0)}.pr.P1{background:var(--p1bg);color:var(--p1)}.pr.P2{background:var(--p2bg);color:var(--p2)}.pr.PN{background:#fff;color:var(--muted)}
 input.cell{width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:6px}
@@ -103,7 +103,7 @@ input.tgt{width:135px}.past{color:var(--red);font-weight:700}
 </div>
 <div id="modal"></div>
 <script>
-const STATUSES=["Not started","In progress","Blocked","Done"];
+const STATUSES=["Not started","In progress","Blocked","Done","Not required"];
 const PRIOS=["","P0","P1","P2"];
 const DEFAULT_EMAILS={};  // no addresses stored in this file — they live in the "Directory" sheet of the Excel, looked up at send time
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
@@ -143,7 +143,7 @@ const emailsFor=s=>[...new Set(names(s).map(emailOf).filter(Boolean))];
 function excelToDate(v){if(v instanceof Date)return v;if(typeof v==="number"){const o=XLSX.SSF.parse_date_code(v);if(o)return new Date(o.y,o.m-1,o.d);}if(typeof v==="string"&&v.trim()){const d=new Date(v);if(!isNaN(d))return d;}return null;}
 const isoD=d=>d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:"";
 const niceD=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
-const stClass=s=>({"Done":"c-cp","Complete":"c-cp","Completed":"c-cp","In progress":"c-ip","In Progress":"c-ip","Blocked":"c-bl"})[(s||"").trim()]||"c-ns";
+const stClass=s=>({"Done":"c-cp","Complete":"c-cp","Completed":"c-cp","In progress":"c-ip","In Progress":"c-ip","Blocked":"c-bl","Not required":"c-na"})[(s||"").trim()]||"c-ns";
 const isDone=s=>["Done","Complete","Completed"].includes((s||"").trim());
 const prClass=p=>{const m=String(p||"").match(/P([0-3])/);return m?("P"+m[1]):"PN";};
 const prRank=p=>{const m=String(p||"").match(/P([0-3])/);return m?+m[1]:9;};
@@ -192,8 +192,15 @@ const eIn=(ref,i,fld,v,cls)=>`<input class="cell ${cls||''}" data-ref="${ref}" d
 const eDate=(ref,i,fld,d)=>`<input type="date" class="cell tgt ${d&&d<TODAY?'past':''}" data-ref="${ref}" data-i="${i}" data-f="${fld}" value="${isoD(d)}">`;
 const eStatus=(ref,i,v)=>`<select class="st chip ${stClass(v)}" data-ref="${ref}" data-i="${i}" data-f="status">${STATUSES.map(s=>`<option ${s===v||(s==='Done'&&isDone(v))?'selected':''}>${s}</option>`).join("")}</select>`;
 const ePrio=(ref,i,v)=>`<select class="pr chip ${prClass(v)}" data-ref="${ref}" data-i="${i}" data-f="priority">${PRIOS.map(p=>`<option value="${p}" ${p===v?'selected':''}>${p||'—'}</option>`).join("")}</select>`;
+function removePending(ref,id){Object.keys(pending).forEach(k=>{if(pending[k].ref===ref&&String(pending[k].id)===String(id))delete pending[k];});savePending();updatePubBadge();}
 function bind(){$("#body").querySelectorAll("[data-ref]").forEach(el=>{
   el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{const a=arrFor(el.dataset.ref),o=a[+el.dataset.i],fld=el.dataset.f;
+    if(fld==="status"&&el.value==="Not required"){
+      const label=o.task||o.deliverable||("#"+o.id);
+      if(!confirm(`Delete this task?\n\n“${label}”\n\nMarking it “Not required” removes it from the calendar (it won't be saved; the next sync drops it from OneDrive too).`)){
+        el.value=o.status;el.className="st chip "+stClass(o.status);return;}
+      const idx=a.indexOf(o);if(idx>-1)a.splice(idx,1);
+      removePending(el.dataset.ref,o.id);markDirty();render();return;}
     if(fld==="due")o.due=el.value?new Date(el.value+"T00:00:00"):null;else o[fld]=el.value;
     recordPending(el.dataset.ref,o.id,fld,el.value);markDirty();
     if(fld==="status")el.className="st chip "+stClass(el.value);if(fld==="priority")el.className="pr chip "+prClass(el.value);});});}
