@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Celona Marketing Calendar Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#0b1f3a;--blue:#2F5496;--green:#4DCABC;--yellow:#FFE08A;--bg:#f4f6fa;--card:#fff;--ink:#1a2230;--muted:#667085;--line:#e3e8f0;
+--red:#d92d20;--amber:#b54708;--ok:#067647;--okbg:#e6f4ec;--ipbg:#e0eaff;--ip:#2f5496;--blk:#6941c6;--blkbg:#ede9fe;--nsbg:#eef1f6;--ns:#475467;
+--p0bg:#fce4e2;--p0:#c0202e;--p1bg:#fef0c7;--p1:#b54708;--p2bg:#e0eaff;--p2:#2f5496;--p3bg:#eef1f6;--p3:#475467;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13.5px}
+.head{background:linear-gradient(120deg,var(--navy),var(--blue));color:#fff;padding:16px 22px}
+.head h1{margin:0;font-size:19px;font-weight:700}.head .sub{opacity:.85;font-size:12px;margin-top:3px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 22px;background:var(--card);border-bottom:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{background:#23426f}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.save{background:#10b981}.btn.save:hover{background:#0e9b75}
+.btn.alt{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.alt:hover{background:#eef2fb}
+.btn.sm{padding:5px 10px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--blue);border-radius:8px;overflow:hidden}
+.seg button{background:#fff;color:var(--blue);border:none;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--blue);color:#fff}
+input,select{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.spacer{flex:1}.status{font-size:12px;color:var(--muted)}.dirty{color:var(--amber);font-weight:600}
+.wrap{padding:16px 22px;max-width:1600px;margin:0 auto}
+.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:78px}
+.stat .n{font-size:20px;font-weight:700}.stat .l{font-size:11px;color:var(--muted)}.stat.p0 .n{color:var(--p0)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.cat td{background:var(--green);font-weight:700;color:#06302b;font-size:13px;padding:8px 10px}
+tr.cat td .meta{font-weight:500;color:#0a4a41;font-size:11.5px;margin-left:8px}
+tr.sub td{background:var(--yellow);font-weight:600;color:#5a4500;font-size:12px;padding:6px 10px 6px 22px}
+tr.bucket td{background:var(--navy);color:#fff;font-weight:700;font-size:12.5px;padding:8px 10px}
+tr.bucket.overdue td{background:var(--red)}tr.bucket.week td{background:var(--amber)}tr.bucket.high td{background:#6941c6}
+tr.summary td{background:#f7faff}
+td.id{color:var(--muted);font-weight:600;width:48px}
+td.deliv{font-weight:500;min-width:210px}
+td.deliv .ctag{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
+a.url{color:var(--blue);font-size:11.5px;text-decoration:none}a.url:hover{text-decoration:underline}
+.kind{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:5px;margin-right:5px;vertical-align:middle}
+.kind.Task{background:#e7f8f4;color:#0c7a66}
+.evtype{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#e8edff;color:#33489c}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.c-ns{background:var(--nsbg);color:var(--ns)}.c-ip{background:var(--ipbg);color:var(--ip)}.c-bl{background:var(--blkbg);color:var(--blk)}.c-cp{background:var(--okbg);color:var(--ok)}
+select.st,select.pr{border:none;font-weight:600;border-radius:20px;padding:3px 8px;font-size:11.5px}
+.pr.P0{background:var(--p0bg);color:var(--p0)}.pr.P1{background:var(--p1bg);color:var(--p1)}.pr.P2{background:var(--p2bg);color:var(--p2)}.pr.PN{background:#fff;color:var(--muted)}
+input.cell{width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:6px}
+input.cell:hover{border-color:var(--line)}input.cell:focus{border-color:var(--blue);background:#fff}
+input.tgt{width:135px}.past{color:var(--red);font-weight:700}
+.empty{padding:50px;text-align:center;color:var(--muted)}
+.note{background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:10px 13px;font-size:12.5px;margin-bottom:14px}
+.viewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.hidden{display:none}
+.modal{position:fixed;inset:0;background:#0b1f3a99;display:flex;align-items:center;justify-content:center;z-index:100}
+.modal .box{background:#fff;border-radius:14px;max-width:700px;width:92%;max-height:86vh;overflow:auto;padding:20px 22px;box-shadow:0 20px 60px #0006}
+.modal h2{margin:0 0 4px;font-size:17px}.modal .x{float:right;cursor:pointer;color:var(--muted);font-size:22px;line-height:1}
+.erow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.erow .nm{width:160px;font-weight:600}.erow input{flex:1}
+.due-item{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.due-item .who{font-weight:700}.due-item .meta{font-size:12px;color:var(--muted)}
+.ev-card{border:1px solid var(--line);border-radius:10px;padding:0;margin-bottom:10px;overflow:hidden}
+.ev-card .eh{background:#f7faff;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.ev-card .eh .en{font-weight:700;font-size:14px}
+.ev-card .eb{padding:8px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 18px}
+.ev-card .fld{font-size:12px;padding:3px 0}.ev-card .fld b{color:var(--muted);font-weight:600;display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+</style></head>
+<body>
+<div class="head"><h1>Celona Marketing Calendar Dashboard</h1>
+  <div class="sub">Events &amp; Tasks · edit tasks live and publish back to OneDrive · managed copy synced every 6h</div></div>
+<div class="toolbar">
+  <button class="btn" id="open">📂 Open calendar file</button>
+  <button class="btn alt hidden" id="reopen">📄 Reopen last file</button>
+  <button class="btn save" id="save" disabled>💾 Save to Excel</button>
+  <span class="seg hidden" id="viewseg">
+    <button data-v="event" class="on">By Event</button>
+    <button data-v="due">By Due Date</button>
+    <button data-v="cat">By Category</button>
+    <button data-v="events">Events</button></span>
+  <button class="btn save hidden" id="pubbtn">⬆ Publish to OneDrive</button>
+  <button class="btn alt hidden" id="linkbtn">🔗 Link OneDrive file</button>
+  <button class="btn alt hidden" id="emailbtn">✉ Email due-soon</button>
+  <button class="btn alt hidden" id="setbtn">⚙ Emails</button>
+  <label class="status hidden" id="aslabel" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="autosave"> Autosave (local)</label>
+  <span class="spacer"></span>
+  <span class="status" id="fileinfo">No file open</span>
+</div>
+<div class="wrap">
+  <div class="note" id="intro">
+    <b>Meeting workflow:</b> Click <b>Open calendar file</b> → your local <code>Marketing Event Calendar (Claude Managed).xlsx</code> (in your Claude folder; next time use <b>Reopen last file</b>).
+    Edit tasks freely during your call — it <b>saves to your local copy</b> (turn on <b>Autosave</b>), so no one else can lock it and you never hit contention.
+    When ready to share, click <b>🔗 Link OneDrive file</b> once (pick the <code>(Working).xlsx</code>), then <b>⬆ Publish to OneDrive</b> —
+    it merges <i>only your task changes</i> into the Working file, keeping edits others made there. If it's open in Excel, just close it and Publish again.
+    Tabs: <b>By Event</b> (tasks grouped under each event), <b>By Due Date</b> (Overdue / This week / 2 weeks / High-priority), <b>By Category</b>, <b>Events</b> (logistics, read-only reference).
+    <b>✉ Email due-soon</b> makes editable <b>.eml</b> drafts per owner. Set addresses under <b>⚙ Emails</b>.
+  </div>
+  <div class="cards hidden" id="cards"></div>
+  <div id="body"></div>
+</div>
+<div id="modal"></div>
+<script>
+const STATUSES=["Not started","In progress","Blocked","Done"];
+const PRIOS=["","P0","P1","P2"];
+const DEFAULT_EMAILS={"Pradhyum Ramkumar":"pramkumar@celona.io","Greg LeBeau":"greg@celona.io","Pepper Marketing":""};
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const $=s=>document.querySelector(s);
+let workbook=null,fileHandle=null,fileName="",tasks=[],events=[],dirty=false,view="event";
+let f={q:"",status:"",owner:"",prio:"",cat:"",event:"",type:""};
+let EMAILS=loadEmails();
+let autosave=(localStorage.getItem("mktcal_autosave")==="1"),asTimer=null;
+let publishHandle=null,pending=loadPending();
+const SHEET={tasks:"Tasks"};
+/* 1-based source column numbers for editable+publishable Task fields */
+const COLMAP={tasks:{task:2,event:3,owner:4,assigned:5,due:6,status:7,priority:8,category:9,notes:10}};
+const DATECOL={tasks:6};
+function loadPending(){try{return JSON.parse(localStorage.getItem("mktcal_pending")||"{}");}catch(e){return {};}}
+function savePending(){try{localStorage.setItem("mktcal_pending",JSON.stringify(pending));}catch(e){}}
+function recordPending(ref,id,field,val){pending[`${ref}|${id}|${field}`]={ref,id,field,val};savePending();updatePubBadge();}
+function pendingCount(){return Object.keys(pending).length;}
+function updatePubBadge(){const b=$("#pubbtn");if(b)b.textContent="⬆ Publish to OneDrive"+(pendingCount()?` (${pendingCount()})`:"");}
+
+/* IndexedDB handle memory */
+function idb(mode,fn){return new Promise((res,rej)=>{const o=indexedDB.open("mktcal",1);
+  o.onupgradeneeded=()=>{if(!o.result.objectStoreNames.contains("h"))o.result.createObjectStore("h");};
+  o.onerror=()=>rej(o.error);o.onsuccess=()=>{const tx=o.result.transaction("h",mode),st=tx.objectStore("h"),rq=fn(st);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);};});}
+const idbGet=k=>idb("readonly",st=>st.get(k));const idbSet=(k,v)=>idb("readwrite",st=>st.put(v,k));
+
+/* emails */
+function loadEmails(){try{const j=localStorage.getItem("mktcal_emails");if(j){const o=JSON.parse(j);return{map:Object.assign({},DEFAULT_EMAILS,o.map),cc:o.cc??"pramkumar@celona.io"};}}catch(e){}return{map:{...DEFAULT_EMAILS},cc:"pramkumar@celona.io"};}
+function saveEmails(){try{localStorage.setItem("mktcal_emails",JSON.stringify(EMAILS));}catch(e){}}
+const names=s=>String(s||"").split(/[\/,+&]| and /).map(x=>x.trim()).filter(Boolean);
+const emailsFor=s=>[...new Set(names(s).map(n=>EMAILS.map[n]).filter(Boolean))];
+
+/* helpers */
+function excelToDate(v){if(v instanceof Date)return v;if(typeof v==="number"){const o=XLSX.SSF.parse_date_code(v);if(o)return new Date(o.y,o.m-1,o.d);}if(typeof v==="string"&&v.trim()){const d=new Date(v);if(!isNaN(d))return d;}return null;}
+const isoD=d=>d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:"";
+const niceD=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+const stClass=s=>({"Done":"c-cp","Complete":"c-cp","Completed":"c-cp","In progress":"c-ip","In Progress":"c-ip","Blocked":"c-bl"})[(s||"").trim()]||"c-ns";
+const isDone=s=>["Done","Complete","Completed"].includes((s||"").trim());
+const prClass=p=>{const m=String(p||"").match(/P([0-3])/);return m?("P"+m[1]):"PN";};
+const prRank=p=>{const m=String(p||"").match(/P([0-3])/);return m?+m[1]:9;};
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const escA=s=>String(s==null?"":s).replace(/"/g,"&quot;").replace(/</g,"&lt;");
+const arrFor=r=>({tasks,events}[r]);
+
+/* open / load */
+async function openFile(){
+  try{
+    if(window.showOpenFilePicker){
+      const last=await idbGet("lastFile").catch(()=>null);
+      [fileHandle]=await window.showOpenFilePicker({id:"mktcaltracker",startIn:last||"documents",types:[{description:"Excel",accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]}}]});
+      const fl=await fileHandle.getFile();fileName=fl.name;await loadBuf(await fl.arrayBuffer());idbSet("lastFile",fileHandle).catch(()=>{});
+    }else{const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx";
+      inp.onchange=async e=>{const fl=e.target.files[0];if(!fl)return;fileName=fl.name;fileHandle=null;await loadBuf(await fl.arrayBuffer());};inp.click();}
+  }catch(e){if(e.name!=="AbortError")alert("Could not open: "+e.message);}
+}
+async function reopenLast(){try{const h=await idbGet("lastFile");if(!h){alert("No remembered file.");return;}
+  if((await h.queryPermission({mode:"readwrite"}))!=="granted"&&(await h.requestPermission({mode:"readwrite"}))!=="granted"){alert("Permission denied.");return;}
+  fileHandle=h;const fl=await h.getFile();fileName=fl.name;await loadBuf(await fl.arrayBuffer());}catch(e){alert("Could not reopen: "+e.message);}}
+function rowsOf(sheet){const ws=workbook.Sheets[sheet];return ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:""}):[];}
+async function loadBuf(buf){
+  workbook=XLSX.read(buf,{cellDates:true});
+  const T=rowsOf("Tasks");tasks=[];
+  for(let i=1;i<T.length;i++){const r=T[i];if(!r||!String(r[0]||"").trim())continue;
+    tasks.push({id:r[0],task:r[1]||"",event:r[2]||"",owner:r[3]||"",assigned:r[4]||"",due:excelToDate(r[5]),status:(String(r[6]||"").trim()||"Not started"),priority:String(r[7]||"").trim(),category:r[8]||"",notes:r[9]||""});}
+  const E=rowsOf("Events-Logistics");events=[];
+  for(let i=1;i<E.length;i++){const r=E[i];if(!r||!String(r[2]||"").trim())continue;
+    events.push({dateRaw:r[0]||"",date:excelToDate(r[0]),fq:r[1]||"",name:r[2]||"",lead:r[3]||"",type:r[4]||"",location:r[5]||"",tracking:r[6]||"",cost:r[9]||"",attendees:r[10]||"",activities:r[11]||"",expo:r[12]||"",deliverables:r[13]||"",shipping:r[14]||"",contact:r[15]||"",web:r[16]||""});}
+  if(!tasks.length&&!events.length){alert("No Tasks / Events-Logistics sheets found.");return;}
+  dirty=false;$("#save").disabled=false;$("#fileinfo").textContent=`${fileName} · ${tasks.length} tasks · ${events.length} events`;
+  ["#cards","#viewseg","#emailbtn","#setbtn","#aslabel","#pubbtn","#linkbtn"].forEach(s=>$(s).classList.remove("hidden"));
+  const asBox=$("#autosave");asBox.checked=autosave&&!!fileHandle;asBox.disabled=!fileHandle;
+  $("#aslabel").title=fileHandle?"Save automatically a moment after each edit (to your local copy)":"Autosave needs Chrome's in-place save (open via Open/Reopen, not a download)";
+  try{publishHandle=await idbGet("publishFile");}catch(e){}
+  refreshPublishUI();
+  $("#intro").classList.add("hidden");render();
+}
+
+/* editable cell builders (tasks only) */
+const eIn=(ref,i,fld,v,cls)=>`<input class="cell ${cls||''}" data-ref="${ref}" data-i="${i}" data-f="${fld}" value="${escA(v)}">`;
+const eDate=(ref,i,fld,d)=>`<input type="date" class="cell tgt ${d&&d<TODAY?'past':''}" data-ref="${ref}" data-i="${i}" data-f="${fld}" value="${isoD(d)}">`;
+const eStatus=(ref,i,v)=>`<select class="st chip ${stClass(v)}" data-ref="${ref}" data-i="${i}" data-f="status">${STATUSES.map(s=>`<option ${s===v||(s==='Done'&&isDone(v))?'selected':''}>${s}</option>`).join("")}</select>`;
+const ePrio=(ref,i,v)=>`<select class="pr chip ${prClass(v)}" data-ref="${ref}" data-i="${i}" data-f="priority">${PRIOS.map(p=>`<option value="${p}" ${p===v?'selected':''}>${p||'—'}</option>`).join("")}</select>`;
+function bind(){$("#body").querySelectorAll("[data-ref]").forEach(el=>{
+  el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{const a=arrFor(el.dataset.ref),o=a[+el.dataset.i],fld=el.dataset.f;
+    if(fld==="due")o.due=el.value?new Date(el.value+"T00:00:00"):null;else o[fld]=el.value;
+    recordPending(el.dataset.ref,o.id,fld,el.value);markDirty();
+    if(fld==="status")el.className="st chip "+stClass(el.value);if(fld==="priority")el.className="pr chip "+prClass(el.value);});});}
+function markDirty(){dirty=true;$("#fileinfo").innerHTML=fileName+' · <span class="dirty">unsaved changes</span>';
+  if(autosave&&fileHandle){clearTimeout(asTimer);asTimer=setTimeout(()=>doSave(true),1500);}}
+
+/* metrics */
+function metrics(arr){const m={total:arr.length,unassigned:0,assigned:0,ns:0,ip:0,bl:0,cp:0};
+  arr.forEach(o=>{(String(o.owner).trim()?m.assigned++:m.unassigned++);
+    if(isDone(o.status))m.cp++;else if((o.status||'').toLowerCase().includes('progress'))m.ip++;else if((o.status||'').toLowerCase().includes('block'))m.bl++;else m.ns++;});return m;}
+function summaryRow(label,arr){const m=metrics(arr);
+  return `<tr class="summary"><td colspan="7"><div class="met" style="display:inline-flex;gap:12px;flex-wrap:wrap;align-items:center"><b>${esc(label)}</b>
+    <span><b>${m.total}</b> total</span><span><b>${m.ip}</b> in progress</span><span><b>${m.ns}</b> not started</span><span><b>${m.cp}</b> done</span></div></td></tr>`;}
+
+/* stat cards */
+function cards(){const open=tasks.filter(t=>!isDone(t.status));
+  const cp=tasks.filter(t=>isDone(t.status)).length,pct=tasks.length?Math.round(cp/tasks.length*100):0;
+  const p0=open.filter(t=>prClass(t.priority)==="P0").length;
+  const od=open.filter(t=>t.due&&t.due<TODAY).length;
+  const upco=events.filter(e=>e.date&&e.date>=TODAY).length;
+  $("#cards").innerHTML=[["Tasks",tasks.length],["Open",open.length],["Upcoming events",upco],["Done",cp+" ("+pct+"%)"],["Overdue",od]]
+    .map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("")+`<div class="stat p0"><div class="n">${p0}</div><div class="l">P0 open</div></div>`;}
+
+/* views */
+function render(){cards();
+  document.querySelectorAll("#viewseg button").forEach(b=>b.classList.toggle("on",b.dataset.v===view));
+  if(view==="event")renderByEvent();else if(view==="due")renderDue();else if(view==="cat")renderByCat();else renderEvents();}
+function setView(v){view=v;f={q:"",status:"",owner:"",prio:"",cat:"",event:"",type:""};render();}
+
+function matchTask(t){const q=f.q.toLowerCase();
+  if(f.status&&t.status!==f.status)return false;
+  if(f.prio&&prClass(t.priority)!==f.prio)return false;
+  if(f.owner&&!String(t.owner+" "+t.assigned).toLowerCase().includes(f.owner.toLowerCase()))return false;
+  if(q&&!(`${t.id} ${t.task} ${t.event} ${t.owner} ${t.assigned} ${t.notes} ${t.category}`.toLowerCase().includes(q)))return false;
+  return true;}
+const taskHead='<thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Assigned</th><th>Status</th><th>Priority</th><th>Due</th><th>Category</th><th>Notes</th></tr></thead>';
+function taskRow(t){const i=tasks.indexOf(t);
+  return `<tr><td class="id">${t.id}</td><td class="deliv">${esc(t.task)}</td>
+    <td>${eIn("tasks",i,"owner",t.owner)}</td><td>${eIn("tasks",i,"assigned",t.assigned)}</td>
+    <td>${eStatus("tasks",i,t.status)}</td><td>${ePrio("tasks",i,t.priority)}</td>
+    <td>${eDate("tasks",i,"due",t.due)}</td><td>${eIn("tasks",i,"category",t.category)}</td>
+    <td>${eIn("tasks",i,"notes",t.notes)}</td></tr>`;}
+
+/* event order: by parsed event date asc (nulls last), then name */
+function eventOrder(){const seen=[...new Set(tasks.map(t=>t.event||"(no event)"))];
+  const dateOf={};events.forEach(e=>{dateOf[e.name]=e.date?e.date.getTime():Infinity;});
+  return seen.sort((a,b)=>{const da=dateOf[a]??Infinity,db=dateOf[b]??Infinity;if(da!==db)return da-db;return String(a).localeCompare(String(b));});}
+
+function filterBar(extra){
+  return `<div class="viewbar"><input id="q" placeholder="Search…" value="${escA(f.q)}">
+    <select id="fstatus"><option value="">All statuses</option>${STATUSES.map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join("")}</select>
+    <select id="fprio"><option value="">All priorities</option>${["P0","P1","P2"].map(s=>`<option ${f.prio===s?'selected':''}>${s}</option>`).join("")}</select>${extra||""}</div>`;}
+
+function renderByEvent(){
+  let html=filterBar()+'<table>'+taskHead+'<tbody>';
+  let any=false;
+  eventOrder().forEach(ev=>{
+    const items=tasks.filter(t=>(t.event||"(no event)")===ev&&matchTask(t));
+    if(!items.length)return;any=true;
+    const meta=events.find(e=>e.name===ev);
+    const tag=meta?`<span class="meta">${esc(meta.dateRaw?String(meta.dateRaw).slice(0,12):niceD(meta.date))} · ${esc(meta.type)}</span>`:"";
+    html+=`<tr class="cat"><td colspan="9">${esc(ev)}${tag}</td></tr>`;
+    items.sort((a,b)=>{const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;return ta-tb||prRank(a.priority)-prRank(b.priority);});
+    items.forEach(t=>html+=taskRow(t));
+  });
+  if(!any)html+='<tr><td colspan="9" class="empty">Nothing matches.</td></tr>';
+  html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
+
+function renderByCat(){
+  const cats=[...new Set(tasks.map(t=>t.category||"(uncategorized)"))].sort();
+  let html=filterBar()+'<table>'+taskHead+'<tbody>';let any=false;
+  cats.forEach(cat=>{const items=tasks.filter(t=>(t.category||"(uncategorized)")===cat&&matchTask(t));
+    if(!items.length)return;any=true;
+    html+=`<tr class="cat"><td colspan="9">${esc(cat)}</td></tr>`+summaryRow(cat,items);
+    items.sort((a,b)=>{const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;return ta-tb;});
+    items.forEach(t=>html+=taskRow(t));});
+  if(!any)html+='<tr><td colspan="9" class="empty">Nothing matches.</td></tr>';
+  html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
+
+/* due-date view with High-priority bucket */
+function bucketOf(t){if(!isDone(t.status)&&t.due&&t.due<TODAY)return 0;
+  if(t.due){const d=Math.round((t.due-TODAY)/864e5);if(d<=7)return 1;if(d<=14)return 2;}
+  if(!isDone(t.status)&&prRank(t.priority)<=1)return 3;
+  if(t.due)return 4;return 5;}
+const BUCKETS=[["overdue","⛔ Overdue"],["week","🔥 Due this week"],["","📅 Next 2 weeks"],["high","⭐ High priority (P0 / P1)"],["","Later"],["","No due date"]];
+function renderDue(){
+  let list=tasks.filter(matchTask);
+  list.sort((a,b)=>{const ba=bucketOf(a),bb=bucketOf(b);if(ba!==bb)return ba-bb;
+    const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;
+    if(ba===3)return prRank(a.priority)-prRank(b.priority)||ta-tb;
+    if(ta!==tb)return ta-tb;return prRank(a.priority)-prRank(b.priority);});
+  let html=filterBar('<span class="status">All open + done tasks, bucketed by due date</span>');
+  html+='<table><thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Status</th><th>Priority</th><th>Due</th><th>Notes</th></tr></thead><tbody>';
+  if(!list.length)html+='<tr><td colspan="7" class="empty">Nothing matches.</td></tr>';
+  let lb=-1;
+  list.forEach(t=>{const b=bucketOf(t);if(b!==lb){const[cls,label]=BUCKETS[b];html+=`<tr class="bucket ${cls}"><td colspan="7">${label}</td></tr>`;lb=b;}
+    const i=tasks.indexOf(t);
+    html+=`<tr><td class="id">${t.id}</td>
+      <td class="deliv"><span class="kind Task">Task</span>${esc(t.task)}<span class="ctag">${esc(t.event)}${t.category?(" › "+esc(t.category)):""}</span></td>
+      <td>${eIn("tasks",i,"owner",t.owner)}</td><td>${eStatus("tasks",i,t.status)}</td>
+      <td>${ePrio("tasks",i,t.priority)}</td>
+      <td>${eDate("tasks",i,"due",t.due)}</td><td>${eIn("tasks",i,"notes",t.notes)}</td></tr>`;});
+  html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
+
+/* Events tab — read-only logistics reference, upcoming first */
+function renderEvents(){
+  const types=[...new Set(events.map(e=>e.type).filter(Boolean))].sort();
+  let bar=`<div class="viewbar"><input id="q" placeholder="Search events…" value="${escA(f.q)}">
+    <select id="ftype"><option value="">All types</option>${types.map(s=>`<option ${f.type===s?'selected':''}>${esc(s)}</option>`).join("")}</select>
+    <label class="status" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="fupcoming" ${f.upcoming?'checked':''}> Upcoming only</label>
+    <span class="status">Logistics reference (read-only) · maintained via chat / the event pipeline</span></div>`;
+  let list=events.slice();
+  list.sort((a,b)=>{const da=a.date?a.date.getTime():Infinity,db=b.date?b.date.getTime():Infinity;return da-db;});
+  const q=f.q.toLowerCase();
+  list=list.filter(e=>{
+    if(f.type&&e.type!==f.type)return false;
+    if(f.upcoming&&!(e.date&&e.date>=TODAY)&&!(!e.date&&e.dateRaw))return false;
+    if(q&&!JSON.stringify(e).toLowerCase().includes(q))return false;return true;});
+  let html=bar;
+  if(!list.length)html+='<div class="empty">No events match.</div>';
+  list.forEach(e=>{
+    const flds=[["Marketing Lead",e.lead],["Location",e.location],["Status / Tracking",e.tracking],["Cost",e.cost],["Attendees",e.attendees],["Activities",e.activities],["Expo / Move In/Out",e.expo],["Marketing deliverables",e.deliverables],["Shipping",e.shipping],["Event contact",e.contact]].filter(([k,v])=>String(v||"").trim());
+    const dl=e.dateRaw?(e.date?niceD(e.date):String(e.dateRaw)):niceD(e.date);
+    html+=`<div class="ev-card"><div class="eh"><span class="en">${esc(e.name)}</span>
+      <span class="evtype">${esc(e.type)||"Event"}</span>
+      <span class="status">📅 ${esc(dl)}${e.fq?(" · "+esc(e.fq)):""}</span>
+      ${e.web?`<a class="url" href="${escA(String(e.web).startsWith('http')?e.web:'https://'+e.web)}" target="_blank">registration ↗</a>`:""}</div>
+      <div class="eb">${flds.map(([k,v])=>`<div class="fld"><b>${esc(k)}</b>${esc(v).replace(/\n/g,"<br>")}</div>`).join("")||'<div class="fld status">No logistics captured yet.</div>'}</div></div>`;});
+  $("#body").innerHTML=html;wireFilters();}
+
+function wireFilters(){
+  const q=$("#q");if(q)q.oninput=()=>{f.q=q.value;render();setTimeout(()=>{const e=$("#q");if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},0);};
+  ["fstatus","fprio","ftype"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{f[id.replace("f","")]=el.value;render();};});
+  const up=$("#fupcoming");if(up)up.onchange=()=>{f.upcoming=up.checked;render();};}
+
+/* save */
+function aoaDates(ws,col,n){for(let r=2;r<=n+1;r++){const c=ws[col+r];if(c&&c.t==="d")c.z="yyyy-mm-dd";}}
+function buildSheets(){
+  const Th=["ID","Task","Event","Owner","Assigned to","Due","Status","Priority","Category","Notes"];
+  const T=[Th];tasks.forEach(t=>T.push([t.id,t.task,t.event,t.owner,t.assigned,t.due||"",t.status,t.priority,t.category,t.notes]));
+  const wsT=XLSX.utils.aoa_to_sheet(T,{cellDates:true});aoaDates(wsT,"F",tasks.length);workbook.Sheets["Tasks"]=wsT;
+  if(!workbook.SheetNames.includes("Tasks"))workbook.SheetNames.unshift("Tasks");
+}
+async function doSave(quiet){if(!workbook)return;buildSheets();
+  const out=XLSX.write(workbook,{bookType:"xlsx",type:"array",cellDates:true});
+  try{if(fileHandle){if((await fileHandle.requestPermission({mode:"readwrite"}))!=="granted"){if(!quiet)alert("Write denied.");return;}
+      $("#fileinfo").textContent=fileName+" · saving…";
+      const w=await fileHandle.createWritable();await w.write(out);await w.close();dirty=false;
+      $("#fileinfo").textContent=fileName+(autosave?" · autosaved ✓ ":" · saved ✓ ")+new Date().toLocaleTimeString();
+    }else{const blob=new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fileName||"Marketing Event Calendar (Working).xlsx";a.click();
+      $("#fileinfo").textContent=fileName+" · downloaded (replace the Working file)";}
+  }catch(e){
+    $("#fileinfo").innerHTML=fileName+' · <span class="dirty">save deferred (file busy)</span>';
+    if(quiet){clearTimeout(asTimer);asTimer=setTimeout(()=>doSave(true),5000);}else alert("Save failed: "+e.message+"\n(If the file is open in Excel, close it and try again.)");}}
+const save=()=>doSave(false);
+
+/* ---- Link OneDrive + Publish (field-level merge of MY task changes) ---- */
+function refreshPublishUI(){const linked=!!publishHandle;
+  const lb=$("#linkbtn");if(lb)lb.textContent=linked?"🔗 OneDrive linked ✓":"🔗 Link OneDrive file";
+  const pb=$("#pubbtn");if(pb)pb.disabled=!linked;updatePubBadge();}
+async function linkOneDrive(){try{
+  const [h]=await window.showOpenFilePicker({id:"mktcalpublish",startIn:"documents",types:[{description:"Excel",accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]}}]});
+  publishHandle=h;await idbSet("publishFile",h).catch(()=>{});refreshPublishUI();$("#fileinfo").textContent=fileName+" · OneDrive file linked ✓";
+}catch(e){if(e.name!=="AbortError")alert("Could not link: "+e.message);}}
+function fullRow(ref,id){const o=arrFor(ref).find(x=>String(x.id)===String(id));if(!o)return null;
+  return [o.id,o.task,o.event,o.owner,o.assigned,o.due||"",o.status,o.priority,o.category,o.notes];}
+async function publish(){
+  if(!publishHandle){alert("Click 'Link OneDrive file' first and pick the (Working).xlsx.");return;}
+  if(!pendingCount()){alert("No changes to publish since the last publish.");return;}
+  if(dirty&&fileHandle)await doSave(true);
+  try{
+    if((await publishHandle.requestPermission({mode:"readwrite"}))!=="granted"){alert("Write permission denied for the OneDrive file.");return;}
+    $("#fileinfo").textContent=fileName+" · publishing…";
+    const fl=await publishHandle.getFile();
+    const wbW=XLSX.read(await fl.arrayBuffer(),{cellDates:true});
+    const HDRS={tasks:["ID","Task","Event","Owner","Assigned to","Due","Status","Priority","Category","Notes"]};
+    const bySheet={};Object.values(pending).forEach(p=>{(bySheet[p.ref]=bySheet[p.ref]||[]).push(p);});
+    for(const ref in bySheet){
+      const name=SHEET[ref];let ws=wbW.Sheets[name];
+      let aoa=ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:""}):[];
+      if(!aoa.length)aoa=[HDRS[ref]];
+      const idx={};for(let r=1;r<aoa.length;r++)idx[String(aoa[r][0]).trim()]=r;
+      bySheet[ref].forEach(p=>{const c=COLMAP[ref][p.field];if(!c)return;
+        let r=idx[String(p.id).trim()];
+        if(r==null){const fr=fullRow(ref,p.id);if(!fr)return;aoa.push(fr);r=aoa.length-1;idx[String(p.id).trim()]=r;}
+        while(aoa[r].length<c)aoa[r].push("");
+        aoa[r][c-1]=(p.field==="due")?(p.val?new Date(p.val+"T00:00:00"):""):p.val;});
+      const nws=XLSX.utils.aoa_to_sheet(aoa,{cellDates:true});
+      const L="ABCDEFGHIJ"[DATECOL[ref]-1];
+      for(let r=2;r<=aoa.length;r++){const cell=nws[L+r];if(cell&&cell.t==="d")cell.z="yyyy-mm-dd";}
+      wbW.Sheets[name]=nws;if(!wbW.SheetNames.includes(name))wbW.SheetNames.push(name);
+    }
+    const out=XLSX.write(wbW,{bookType:"xlsx",type:"array",cellDates:true});
+    const w=await publishHandle.createWritable();await w.write(out);await w.close();
+    pending={};savePending();updatePubBadge();
+    $("#fileinfo").textContent=fileName+" · published to OneDrive ✓ "+new Date().toLocaleTimeString();
+  }catch(e){$("#fileinfo").innerHTML=fileName+' · <span class="dirty">publish failed</span>';
+    alert("Publish failed: "+e.message+"\nIf the Working file is open in Excel, close it and click Publish again.");}
+}
+
+/* modals + email */
+function closeModal(){$("#modal").innerHTML="";}
+function modal(html){$("#modal").innerHTML=`<div class="modal"><div class="box"><span class="x" onclick="closeModal()">×</span>${html}</div></div>`;
+  $("#modal .modal").addEventListener("click",e=>{if(e.target.classList.contains("modal"))closeModal();});}
+function emailSettings(){
+  const ns=[...new Set(tasks.flatMap(o=>[...names(o.owner),...names(o.assigned)]))].sort();
+  modal(`<h2>Email addresses</h2><p class="status">Best-guess @celona.io — please verify. Saved in this browser.</p>
+    ${ns.map(n=>`<div class="erow"><span class="nm">${esc(n)}</span><input data-n="${escA(n)}" value="${escA(EMAILS.map[n]||"")}" placeholder="name@celona.io"></div>`).join("")}
+    <div class="erow"><span class="nm">CC</span><input id="ccin" value="${escA(EMAILS.cc)}"></div>
+    <div style="margin-top:14px"><button class="btn" id="esave">Save</button> <span id="emsg" class="status"></span></div>`);
+  $("#esave").onclick=()=>{document.querySelectorAll("#modal .erow input[data-n]").forEach(i=>EMAILS.map[i.dataset.n]=i.value.trim());EMAILS.cc=$("#ccin").value.trim();saveEmails();$("#emsg").textContent="Saved ✓";};
+}
+function buildEml(to,cc,subj,body){const h=["To: "+to.join(", ")];if(cc.length)h.push("Cc: "+cc.join(", "));
+  h.push("Subject: "+subj,"X-Unsent: 1","MIME-Version: 1.0","Content-Type: text/plain; charset=utf-8","");
+  return h.join("\r\n")+"\r\n"+body.replace(/\n/g,"\r\n");}
+function dl(name,content){const b=new Blob([content],{type:"message/rfc822"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),0);}
+function dueSoonGroups(){const horizon=new Date(TODAY);horizon.setDate(horizon.getDate()+14);
+  const by={};tasks.forEach(t=>{if(isDone(t.status)||!t.due||t.due>horizon)return;const who=String(t.assigned).trim()?t.assigned:t.owner;names(who).forEach(p=>{(by[p]=by[p]||[]).push(t);});});return by;}
+function draftFor(p,items){const to=EMAILS.map[p]?[EMAILS.map[p]]:[];
+  const cc=[...new Set(EMAILS.cc?[EMAILS.cc]:[])].filter(e=>!to.includes(e));
+  const subj="[Celona Marketing] Your calendar tasks due in the next 2 weeks";
+  let body=`Hi ${p},\n\nYour marketing-calendar tasks due in the next 2 weeks:\n\n`;
+  items.sort((a,b)=>a.due-b.due).forEach(t=>{const late=t.due<TODAY?" [PAST DUE]":"";body+=`• ${t.task} (${t.event}) — due ${niceD(t.due)}${t.priority?(" · "+t.priority):""} · ${t.status}${late}\n`;});
+  body+=`\nPlease reply with progress or blockers.\n\nThanks,\nPradhyum`;
+  return {to,cc,subj,body};}
+function emailDueSoon(){const by=dueSoonGroups();const people=Object.keys(by).sort();
+  if(!people.length){modal(`<h2>Email due-soon</h2><p>Nothing due in the next 2 weeks. 🎉</p>`);return;}
+  let rows=people.map(p=>{const d=draftFor(p,by[p]);const has=d.to.length;
+    return `<div class="due-item"><div><div class="who">${esc(p)} <span class="meta">· ${by[p].length} item${by[p].length>1?'s':''}</span></div>
+      <div class="meta">CC: ${esc(d.cc.join(", ")||"—")}</div></div>
+      <button class="btn sm ${has?'':'alt'}" ${has?'':'disabled'} onclick="dlDraft('${escA(p)}')">${has?'Download .eml':'No email set'}</button></div>`;}).join("");
+  modal(`<h2>Email due-soon summary</h2><p class="status">One editable .eml draft per owner/assignee (tasks due ≤14 days incl. overdue). Double-click to open in Outlook.</p>
+    ${rows}<div style="margin-top:14px"><button class="btn" id="dall">⬇ Download all drafts</button></div>`);
+  $("#dall").onclick=()=>people.forEach(p=>{if(EMAILS.map[p])dlDraft(p);});
+}
+function dlDraft(p){const by=dueSoonGroups();if(!by[p])return;const d=draftFor(p,by[p]);if(!d.to.length){alert("No email set for "+p);return;}
+  dl(`Marketing due-soon - ${p}.eml`,buildEml(d.to,d.cc,d.subj,d.body));}
+
+/* wire */
+$("#open").onclick=openFile;$("#reopen").onclick=reopenLast;$("#save").onclick=save;
+$("#emailbtn").onclick=emailDueSoon;$("#setbtn").onclick=emailSettings;
+$("#pubbtn").onclick=publish;$("#linkbtn").onclick=linkOneDrive;
+$("#autosave").onchange=e=>{autosave=e.target.checked;localStorage.setItem("mktcal_autosave",autosave?"1":"0");
+  if(autosave&&dirty&&fileHandle)doSave(true);};
+document.querySelectorAll("#viewseg button").forEach(b=>b.onclick=()=>setView(b.dataset.v));
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}});
+(async()=>{try{if(window.showOpenFilePicker&&await idbGet("lastFile"))$("#reopen").classList.remove("hidden");}catch(e){}})();
+</script>
+</body></html>

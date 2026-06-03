@@ -1,0 +1,23 @@
+{
+  "claude_managed": "/Users/<user>/Claude folder/Marketing Event Calendar (Claude Managed).xlsx",
+  "working": "/Users/<user>/Library/CloudStorage/OneDrive-<org>/.../Claude Organizer/Marketing Event Calendar (Working).xlsx",
+  "archive_dir": "/Users/<user>/Library/CloudStorage/OneDrive-<org>/.../Claude Organizer/Archive/",
+  "baseline": "/Users/<user>/Claude folder/.calendar-sync/last-sync-baseline.xlsx",
+  "log_file": "/Users/<user>/Claude folder/.calendar-sync/sync.log",
+  "sync_sheets": ["Tasks"],
+  "done_sheet": "Done",
+  "sheet_keys": { "Tasks": { "type": "column", "col": 1 } },
+  "tasks": {
+    "sheet": "Tasks",
+    "id_col": 1, "task_col": 2, "event_col": 3, "owner_col": 4, "assigned_col": 5,
+    "due_col": 6, "status_col": 7, "priority_col": 8, "category_col": 9, "notes_col": 10,
+    "done_values": ["Done", "Completed", "Complete"],
+    "archive_after_days": 10
+  },
+  "ownership": { "user_owned_cols": [2,3,4,5,6,7,8,9,10], "claude_owned_cols": [] },
+  "formatting": {
+    "header_fill": "#2F5496", "header_font": "#FFFFFF",
+    "category_fill": "#4DCABC", "subcat_fill": "#FFE08A",
+    "column_widths": {"A":5,"B":50,"C":40,"D":18,"E":18,"F":12,"G":13,"H":8,"I":12,"J":40}
+  }
+}
