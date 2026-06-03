@@ -101,10 +101,10 @@ input.tgt{width:135px}.past{color:var(--red);font-weight:700}
 <script>
 const STATUSES=["Not started","In progress","Blocked","Done"];
 const PRIOS=["","P0","P1","P2"];
-const DEFAULT_EMAILS={};  // intentionally empty — add addresses at runtime via the ⚙ Emails dialog (saved in your browser)
+const DEFAULT_EMAILS={};  // no addresses stored in this file — they live in the "Directory" sheet of the Excel, looked up at send time
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const $=s=>document.querySelector(s);
-let workbook=null,fileHandle=null,fileName="",tasks=[],events=[],dirty=false,view="event";
+let workbook=null,fileHandle=null,fileName="",tasks=[],events=[],directory={},dirty=false,view="event";
 let f={q:"",status:"",owner:"",prio:"",cat:"",event:"",type:""};
 let EMAILS=loadEmails();
 let autosave=(localStorage.getItem("mktcal_autosave")==="1"),asTimer=null;
@@ -129,7 +129,11 @@ const idbGet=k=>idb("readonly",st=>st.get(k));const idbSet=(k,v)=>idb("readwrite
 function loadEmails(){try{const j=localStorage.getItem("mktcal_emails");if(j){const o=JSON.parse(j);return{map:Object.assign({},DEFAULT_EMAILS,o.map),cc:o.cc??""};}}catch(e){}return{map:{...DEFAULT_EMAILS},cc:""};}
 function saveEmails(){try{localStorage.setItem("mktcal_emails",JSON.stringify(EMAILS));}catch(e){}}
 const names=s=>String(s||"").split(/[\/,+&]| and /).map(x=>x.trim()).filter(Boolean);
-const emailsFor=s=>[...new Set(names(s).map(n=>EMAILS.map[n]).filter(Boolean))];
+/* Resolve a person's email: Directory sheet from the Excel first, then any browser override. Nothing is stored in this HTML. */
+function emailOf(name){const n=String(name||"").trim();if(!n)return "";
+  const o=(EMAILS.map[n]||"").trim();if(o)return o;
+  const d=directory[n.toLowerCase()];return d?d.trim():"";}
+const emailsFor=s=>[...new Set(names(s).map(emailOf).filter(Boolean))];
 
 /* helpers */
 function excelToDate(v){if(v instanceof Date)return v;if(typeof v==="number"){const o=XLSX.SSF.parse_date_code(v);if(o)return new Date(o.y,o.m-1,o.d);}if(typeof v==="string"&&v.trim()){const d=new Date(v);if(!isNaN(d))return d;}return null;}
@@ -166,8 +170,11 @@ async function loadBuf(buf){
   const E=rowsOf("Events-Logistics");events=[];
   for(let i=1;i<E.length;i++){const r=E[i];if(!r||!String(r[2]||"").trim())continue;
     events.push({dateRaw:r[0]||"",date:excelToDate(r[0]),fq:r[1]||"",name:r[2]||"",lead:r[3]||"",type:r[4]||"",location:r[5]||"",tracking:r[6]||"",cost:r[9]||"",attendees:r[10]||"",activities:r[11]||"",expo:r[12]||"",deliverables:r[13]||"",shipping:r[14]||"",contact:r[15]||"",web:r[16]||""});}
+  // Directory sheet (Name | Email) — the source of truth for addresses; nothing is stored in this HTML
+  const Dir=rowsOf("Directory");directory={};
+  for(let i=1;i<Dir.length;i++){const r=Dir[i];if(!r)continue;const n=String(r[0]||"").trim(),e=String(r[1]||"").trim();if(n&&e)directory[n.toLowerCase()]=e;}
   if(!tasks.length&&!events.length){alert("No Tasks / Events-Logistics sheets found.");return;}
-  dirty=false;$("#save").disabled=false;$("#fileinfo").textContent=`${fileName} · ${tasks.length} tasks · ${events.length} events`;
+  dirty=false;$("#save").disabled=false;$("#fileinfo").textContent=`${fileName} · ${tasks.length} tasks · ${events.length} events · ${Object.keys(directory).length} contacts`;
   ["#cards","#viewseg","#emailbtn","#setbtn","#aslabel","#pubbtn","#linkbtn"].forEach(s=>$(s).classList.remove("hidden"));
   const asBox=$("#autosave");asBox.checked=autosave&&!!fileHandle;asBox.disabled=!fileHandle;
   $("#aslabel").title=fileHandle?"Save automatically a moment after each edit (to your local copy)":"Autosave needs Chrome's in-place save (open via Open/Reopen, not a download)";
@@ -390,8 +397,8 @@ function modal(html){$("#modal").innerHTML=`<div class="modal"><div class="box">
   $("#modal .modal").addEventListener("click",e=>{if(e.target.classList.contains("modal"))closeModal();});}
 function emailSettings(){
   const ns=[...new Set(tasks.flatMap(o=>[...names(o.owner),...names(o.assigned)]))].sort();
-  modal(`<h2>Email addresses</h2><p class="status">Enter each person's address. Saved in this browser only.</p>
-    ${ns.map(n=>`<div class="erow"><span class="nm">${esc(n)}</span><input data-n="${escA(n)}" value="${escA(EMAILS.map[n]||"")}" placeholder="name@celona.io"></div>`).join("")}
+  modal(`<h2>Email addresses</h2><p class="status">Addresses come from the <b>Directory</b> sheet in the Excel file. Editing here saves a temporary override in this browser only — for a permanent change, edit the Directory sheet.</p>
+    ${ns.map(n=>`<div class="erow"><span class="nm">${esc(n)}</span><input data-n="${escA(n)}" value="${escA(emailOf(n))}" placeholder="from Directory sheet"></div>`).join("")}
     <div class="erow"><span class="nm">CC</span><input id="ccin" value="${escA(EMAILS.cc)}"></div>
     <div style="margin-top:14px"><button class="btn" id="esave">Save</button> <span id="emsg" class="status"></span></div>`);
   $("#esave").onclick=()=>{document.querySelectorAll("#modal .erow input[data-n]").forEach(i=>EMAILS.map[i.dataset.n]=i.value.trim());EMAILS.cc=$("#ccin").value.trim();saveEmails();$("#emsg").textContent="Saved ✓";};
@@ -402,7 +409,7 @@ function buildEml(to,cc,subj,body){const h=["To: "+to.join(", ")];if(cc.length)h
 function dl(name,content){const b=new Blob([content],{type:"message/rfc822"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),0);}
 function dueSoonGroups(){const horizon=new Date(TODAY);horizon.setDate(horizon.getDate()+14);
   const by={};tasks.forEach(t=>{if(isDone(t.status)||!t.due||t.due>horizon)return;const who=String(t.assigned).trim()?t.assigned:t.owner;names(who).forEach(p=>{(by[p]=by[p]||[]).push(t);});});return by;}
-function draftFor(p,items){const to=EMAILS.map[p]?[EMAILS.map[p]]:[];
+function draftFor(p,items){const e=emailOf(p);const to=e?[e]:[];
   const cc=[...new Set(EMAILS.cc?[EMAILS.cc]:[])].filter(e=>!to.includes(e));
   const subj="[Celona Marketing] Your calendar tasks due in the next 2 weeks";
   let body=`Hi ${p},\n\nYour marketing-calendar tasks due in the next 2 weeks:\n\n`;
@@ -417,7 +424,7 @@ function emailDueSoon(){const by=dueSoonGroups();const people=Object.keys(by).so
       <button class="btn sm ${has?'':'alt'}" ${has?'':'disabled'} onclick="dlDraft('${escA(p)}')">${has?'Download .eml':'No email set'}</button></div>`;}).join("");
   modal(`<h2>Email due-soon summary</h2><p class="status">One editable .eml draft per owner/assignee (tasks due ≤14 days incl. overdue). Double-click to open in Outlook.</p>
     ${rows}<div style="margin-top:14px"><button class="btn" id="dall">⬇ Download all drafts</button></div>`);
-  $("#dall").onclick=()=>people.forEach(p=>{if(EMAILS.map[p])dlDraft(p);});
+  $("#dall").onclick=()=>people.forEach(p=>{if(emailOf(p))dlDraft(p);});
 }
 function dlDraft(p){const by=dueSoonGroups();if(!by[p])return;const d=draftFor(p,by[p]);if(!d.to.length){alert("No email set for "+p);return;}
   dl(`Marketing due-soon - ${p}.eml`,buildEml(d.to,d.cc,d.subj,d.body));}
