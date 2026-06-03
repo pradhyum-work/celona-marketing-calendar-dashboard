@@ -13,7 +13,7 @@ same pattern as the Celona 2.0 Launch tracker (`project-tracker-suite`).
 
 - **Code** (this dashboard + sync scripts) is versioned here on GitHub.
 - **Data** stays on OneDrive — the `(Working).xlsx` the team opens — and never gets committed.
-- The **Claude Managed** copy lives locally in `~/Claude folder/Claude Managed/` and is what the dashboard edits.
+- The **Claude Managed** copy lives locally in `~/Claude folder/Claude managed Spreadsheets/` and is what the dashboard edits.
 
 ## Files
 
@@ -25,7 +25,7 @@ same pattern as the Celona 2.0 Launch tracker (`project-tracker-suite`).
 
 ## How the team uses the dashboard
 
-1. **Open** `index.html` in Chrome → pick the local `Claude Managed/Marketing Event Calendar (Claude Managed).xlsx`.
+1. **Open** `index.html` in Chrome → pick the local `Claude managed Spreadsheets/Marketing Event Calendar (Claude Managed).xlsx`.
    (Next time: **Reopen last file**.)
 2. **Edit tasks** during the meeting. Turn on **Autosave (local)** — it writes only to your local copy,
    so there's never a file-lock fight with Excel.
