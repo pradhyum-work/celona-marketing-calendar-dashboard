@@ -26,7 +26,9 @@ input,select{font:inherit;padding:7px 9px;border:1px solid var(--line);border-ra
 .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:78px}
 .stat .n{font-size:20px;font-weight:700}.stat .l{font-size:11px;color:var(--muted)}.stat.p0 .n{color:var(--p0)}
 table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-th{background:var(--navy);color:#fff;text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis}
+.colgrip{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;user-select:none}
+.colgrip:hover{background:#ffffff55}
 td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr.cat td{background:var(--green);font-weight:700;color:#06302b;font-size:13px;padding:8px 10px}
 tr.cat td .meta{font-weight:500;color:#0a4a41;font-size:11.5px;margin-left:8px}
@@ -235,7 +237,22 @@ function cards(){const open=tasks.filter(t=>!isDone(t.status));
 /* views */
 function render(){cards();
   document.querySelectorAll("#viewseg button").forEach(b=>b.classList.toggle("on",b.dataset.v===view));
-  if(view==="event")renderByEvent();else if(view==="due")renderDue();else if(view==="cat")renderByCat();else renderEvents();}
+  if(view==="event")renderByEvent();else if(view==="due")renderDue();else if(view==="cat")renderByCat();else renderEvents();
+  colResize();}
+/* draggable column resizing (persists per view in localStorage) */
+function colResize(){const key="mktcal_colw_"+view;let saved={};try{saved=JSON.parse(localStorage.getItem(key)||"{}");}catch(e){}
+  const tbl=$("#body").querySelector("table");if(!tbl)return;
+  tbl.querySelectorAll("thead th").forEach((th,i)=>{
+    if(saved[i])th.style.width=saved[i]+"px";
+    th.style.position="relative";
+    const g=document.createElement("div");g.className="colgrip";
+    g.addEventListener("mousedown",e=>{e.preventDefault();e.stopPropagation();const x0=e.pageX,w0=th.offsetWidth;
+      const mv=ev=>{th.style.width=Math.max(40,w0+(ev.pageX-x0))+"px";};
+      const up=()=>{document.removeEventListener("mousemove",mv);document.removeEventListener("mouseup",up);
+        saved[i]=th.offsetWidth;try{localStorage.setItem(key,JSON.stringify(saved));}catch(e){}};
+      document.addEventListener("mousemove",mv);document.addEventListener("mouseup",up);});
+    g.addEventListener("dblclick",e=>{e.preventDefault();delete saved[i];th.style.width="";try{localStorage.setItem(key,JSON.stringify(saved));}catch(e){}});
+    th.appendChild(g);});}
 function setView(v){view=v;f={q:"",status:"",owner:"",prio:"",cat:"",event:"",type:""};render();}
 
 function matchTask(t){const q=f.q.toLowerCase();
