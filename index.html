@@ -143,6 +143,12 @@ const emailsFor=s=>[...new Set(names(s).map(emailOf).filter(Boolean))];
 
 /* helpers */
 function excelToDate(v){if(v instanceof Date)return v;if(typeof v==="number"){const o=XLSX.SSF.parse_date_code(v);if(o)return new Date(o.y,o.m-1,o.d);}if(typeof v==="string"&&v.trim()){const d=new Date(v);if(!isNaN(d))return d;}return null;}
+/* event dates may be free-text ranges like "Jun 8-10, 2026" — parse the first day */
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function parseEventDate(v){
+  if(typeof v==="string"){const m=v.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:\s*[-–]\s*\d{1,2})?,?\s*(\d{4})/);
+    if(m){const mo=MON[m[1].slice(0,3).toLowerCase()];if(mo!=null){const dt=new Date(+m[3],mo,+m[2]);if(!isNaN(dt))return dt;}}}
+  return excelToDate(v);}
 const isoD=d=>d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:"";
 const niceD=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
 const stClass=s=>({"Done":"c-cp","Complete":"c-cp","Completed":"c-cp","In progress":"c-ip","In Progress":"c-ip","Blocked":"c-bl","Not required":"c-na"})[(s||"").trim()]||"c-ns";
@@ -175,7 +181,7 @@ async function loadBuf(buf){
     tasks.push({id:r[0],task:r[1]||"",event:r[2]||"",owner:r[3]||"",assigned:r[4]||"",due:excelToDate(r[5]),status:(String(r[6]||"").trim()||"Not started"),priority:String(r[7]||"").trim(),category:r[8]||"",notes:r[9]||""});}
   const E=rowsOf("Events-Logistics");events=[];
   for(let i=1;i<E.length;i++){const r=E[i];if(!r||!String(r[2]||"").trim())continue;
-    events.push({dateRaw:r[0]||"",date:excelToDate(r[0]),fq:r[1]||"",name:r[2]||"",lead:r[3]||"",type:r[4]||"",location:r[5]||"",tracking:r[6]||"",cost:r[9]||"",attendees:r[10]||"",activities:r[11]||"",expo:r[12]||"",deliverables:r[13]||"",shipping:r[14]||"",contact:r[15]||"",web:r[16]||""});}
+    events.push({dateRaw:r[0]||"",date:parseEventDate(r[0]),fq:r[1]||"",name:r[2]||"",lead:r[3]||"",type:r[4]||"",location:r[5]||"",tracking:r[6]||"",cost:r[9]||"",attendees:r[10]||"",activities:r[11]||"",expo:r[12]||"",deliverables:r[13]||"",shipping:r[14]||"",contact:r[15]||"",web:r[16]||""});}
   // Directory sheet (Name | Email) — the source of truth for addresses; nothing is stored in this HTML
   const Dir=rowsOf("Directory");directory={};
   for(let i=1;i<Dir.length;i++){const r=Dir[i];if(!r)continue;const n=String(r[0]||"").trim(),e=String(r[1]||"").trim();if(n&&e)directory[n.toLowerCase()]=e;}
