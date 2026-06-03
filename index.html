@@ -193,6 +193,14 @@ const eDate=(ref,i,fld,d)=>`<input type="date" class="cell tgt ${d&&d<TODAY?'pas
 const eStatus=(ref,i,v)=>`<select class="st chip ${stClass(v)}" data-ref="${ref}" data-i="${i}" data-f="status">${STATUSES.map(s=>`<option ${s===v||(s==='Done'&&isDone(v))?'selected':''}>${s}</option>`).join("")}</select>`;
 const ePrio=(ref,i,v)=>`<select class="pr chip ${prClass(v)}" data-ref="${ref}" data-i="${i}" data-f="priority">${PRIOS.map(p=>`<option value="${p}" ${p===v?'selected':''}>${p||'—'}</option>`).join("")}</select>`;
 function removePending(ref,id){Object.keys(pending).forEach(k=>{if(pending[k].ref===ref&&String(pending[k].id)===String(id))delete pending[k];});savePending();updatePubBadge();}
+function newId(){let m=0;tasks.forEach(t=>{const n=parseInt(t.id);if(!isNaN(n)&&n>m)m=n;});return m+1;}
+function addTask(ev){const t={id:newId(),task:"New task",event:ev||"",owner:"Pradhyum Ramkumar",assigned:"",due:new Date(TODAY),status:"Not started",priority:"",category:"",notes:""};
+  tasks.push(t);["task","event","owner","due","status","priority","category","notes"].forEach(fld=>recordPending("tasks",t.id,fld,fld==="due"?isoD(t.due):t[fld]));
+  markDirty();render();
+  setTimeout(()=>{const inp=$(`#body input[data-ref="tasks"][data-f="task"][data-i="${tasks.indexOf(t)}"]`);if(inp){inp.focus();inp.select();}},0);}
+function delTask(id){const i=tasks.findIndex(t=>String(t.id)===String(id));if(i<0)return;const t=tasks[i];
+  if(!confirm(`Delete this task?\n\n“${t.task||('#'+id)}”\n\n(Removed on save; the next sync drops it from OneDrive too.)`))return;
+  tasks.splice(i,1);removePending("tasks",id);markDirty();render();}
 function bind(){$("#body").querySelectorAll("[data-ref]").forEach(el=>{
   el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{const a=arrFor(el.dataset.ref),o=a[+el.dataset.i],fld=el.dataset.f;
     if(fld==="status"&&el.value==="Not required"){
@@ -212,7 +220,7 @@ function metrics(arr){const m={total:arr.length,unassigned:0,assigned:0,ns:0,ip:
   arr.forEach(o=>{(String(o.owner).trim()?m.assigned++:m.unassigned++);
     if(isDone(o.status))m.cp++;else if((o.status||'').toLowerCase().includes('progress'))m.ip++;else if((o.status||'').toLowerCase().includes('block'))m.bl++;else m.ns++;});return m;}
 function summaryRow(label,arr){const m=metrics(arr);
-  return `<tr class="summary"><td colspan="7"><div class="met" style="display:inline-flex;gap:12px;flex-wrap:wrap;align-items:center"><b>${esc(label)}</b>
+  return `<tr class="summary"><td colspan="10"><div class="met" style="display:inline-flex;gap:12px;flex-wrap:wrap;align-items:center"><b>${esc(label)}</b>
     <span><b>${m.total}</b> total</span><span><b>${m.ip}</b> in progress</span><span><b>${m.ns}</b> not started</span><span><b>${m.cp}</b> done</span></div></td></tr>`;}
 
 /* stat cards */
@@ -236,13 +244,14 @@ function matchTask(t){const q=f.q.toLowerCase();
   if(f.owner&&!String(t.owner+" "+t.assigned).toLowerCase().includes(f.owner.toLowerCase()))return false;
   if(q&&!(`${t.id} ${t.task} ${t.event} ${t.owner} ${t.assigned} ${t.notes} ${t.category}`.toLowerCase().includes(q)))return false;
   return true;}
-const taskHead='<thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Assigned</th><th>Status</th><th>Priority</th><th>Due</th><th>Category</th><th>Notes</th></tr></thead>';
+const taskHead='<thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Assigned</th><th>Status</th><th>Priority</th><th>Due</th><th>Category</th><th>Notes</th><th></th></tr></thead>';
+const delCell=id=>`<td><button class="btn sm alt" title="Delete task" onclick="delTask(${JSON.stringify(id)})">✕</button></td>`;
 function taskRow(t){const i=tasks.indexOf(t);
-  return `<tr><td class="id">${t.id}</td><td class="deliv">${esc(t.task)}</td>
+  return `<tr><td class="id">${t.id}</td><td class="deliv">${eIn("tasks",i,"task",t.task)}</td>
     <td>${eIn("tasks",i,"owner",t.owner)}</td><td>${eIn("tasks",i,"assigned",t.assigned)}</td>
     <td>${eStatus("tasks",i,t.status)}</td><td>${ePrio("tasks",i,t.priority)}</td>
     <td>${eDate("tasks",i,"due",t.due)}</td><td>${eIn("tasks",i,"category",t.category)}</td>
-    <td>${eIn("tasks",i,"notes",t.notes)}</td></tr>`;}
+    <td>${eIn("tasks",i,"notes",t.notes)}</td>${delCell(t.id)}</tr>`;}
 
 /* event order: by parsed event date asc (nulls last), then name */
 function eventOrder(){const seen=[...new Set(tasks.map(t=>t.event||"(no event)"))];
@@ -252,7 +261,8 @@ function eventOrder(){const seen=[...new Set(tasks.map(t=>t.event||"(no event)")
 function filterBar(extra){
   return `<div class="viewbar"><input id="q" placeholder="Search…" value="${escA(f.q)}">
     <select id="fstatus"><option value="">All statuses</option>${STATUSES.map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join("")}</select>
-    <select id="fprio"><option value="">All priorities</option>${["P0","P1","P2"].map(s=>`<option ${f.prio===s?'selected':''}>${s}</option>`).join("")}</select>${extra||""}</div>`;}
+    <select id="fprio"><option value="">All priorities</option>${["P0","P1","P2"].map(s=>`<option ${f.prio===s?'selected':''}>${s}</option>`).join("")}</select>
+    <button class="btn sm" id="addtask">➕ Add task</button>${extra||""}</div>`;}
 
 function renderByEvent(){
   let html=filterBar()+'<table>'+taskHead+'<tbody>';
@@ -262,11 +272,11 @@ function renderByEvent(){
     if(!items.length)return;any=true;
     const meta=events.find(e=>e.name===ev);
     const tag=meta?`<span class="meta">${esc(meta.dateRaw?String(meta.dateRaw).slice(0,12):niceD(meta.date))} · ${esc(meta.type)}</span>`:"";
-    html+=`<tr class="cat"><td colspan="9">${esc(ev)}${tag}</td></tr>`;
+    html+=`<tr class="cat"><td colspan="10">${esc(ev)}${tag}</td></tr>`;
     items.sort((a,b)=>{const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;return ta-tb||prRank(a.priority)-prRank(b.priority);});
     items.forEach(t=>html+=taskRow(t));
   });
-  if(!any)html+='<tr><td colspan="9" class="empty">Nothing matches.</td></tr>';
+  if(!any)html+='<tr><td colspan="10" class="empty">Nothing matches.</td></tr>';
   html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
 
 function renderByCat(){
@@ -274,10 +284,10 @@ function renderByCat(){
   let html=filterBar()+'<table>'+taskHead+'<tbody>';let any=false;
   cats.forEach(cat=>{const items=tasks.filter(t=>(t.category||"(uncategorized)")===cat&&matchTask(t));
     if(!items.length)return;any=true;
-    html+=`<tr class="cat"><td colspan="9">${esc(cat)}</td></tr>`+summaryRow(cat,items);
+    html+=`<tr class="cat"><td colspan="10">${esc(cat)}</td></tr>`+summaryRow(cat,items);
     items.sort((a,b)=>{const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;return ta-tb;});
     items.forEach(t=>html+=taskRow(t));});
-  if(!any)html+='<tr><td colspan="9" class="empty">Nothing matches.</td></tr>';
+  if(!any)html+='<tr><td colspan="10" class="empty">Nothing matches.</td></tr>';
   html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
 
 /* due-date view with High-priority bucket */
@@ -293,16 +303,17 @@ function renderDue(){
     if(ba===3)return prRank(a.priority)-prRank(b.priority)||ta-tb;
     if(ta!==tb)return ta-tb;return prRank(a.priority)-prRank(b.priority);});
   let html=filterBar('<span class="status">All open + done tasks, bucketed by due date</span>');
-  html+='<table><thead><tr><th>ID</th><th>Task</th><th>Owner</th><th>Status</th><th>Priority</th><th>Due</th><th>Notes</th></tr></thead><tbody>';
-  if(!list.length)html+='<tr><td colspan="7" class="empty">Nothing matches.</td></tr>';
+  html+='<table><thead><tr><th>ID</th><th>Task</th><th>Event</th><th>Owner</th><th>Status</th><th>Priority</th><th>Due</th><th>Notes</th><th></th></tr></thead><tbody>';
+  if(!list.length)html+='<tr><td colspan="9" class="empty">Nothing matches.</td></tr>';
   let lb=-1;
-  list.forEach(t=>{const b=bucketOf(t);if(b!==lb){const[cls,label]=BUCKETS[b];html+=`<tr class="bucket ${cls}"><td colspan="7">${label}</td></tr>`;lb=b;}
+  list.forEach(t=>{const b=bucketOf(t);if(b!==lb){const[cls,label]=BUCKETS[b];html+=`<tr class="bucket ${cls}"><td colspan="9">${label}</td></tr>`;lb=b;}
     const i=tasks.indexOf(t);
     html+=`<tr><td class="id">${t.id}</td>
-      <td class="deliv"><span class="kind Task">Task</span>${esc(t.task)}<span class="ctag">${esc(t.event)}${t.category?(" › "+esc(t.category)):""}</span></td>
+      <td class="deliv">${eIn("tasks",i,"task",t.task)}</td>
+      <td>${eIn("tasks",i,"event",t.event)}</td>
       <td>${eIn("tasks",i,"owner",t.owner)}</td><td>${eStatus("tasks",i,t.status)}</td>
       <td>${ePrio("tasks",i,t.priority)}</td>
-      <td>${eDate("tasks",i,"due",t.due)}</td><td>${eIn("tasks",i,"notes",t.notes)}</td></tr>`;});
+      <td>${eDate("tasks",i,"due",t.due)}</td><td>${eIn("tasks",i,"notes",t.notes)}</td>${delCell(t.id)}</tr>`;});
   html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
 
 /* Events tab — read-only logistics reference, upcoming first */
@@ -313,7 +324,8 @@ function renderEvents(){
     <label class="status" style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="fupcoming" ${f.upcoming?'checked':''}> Upcoming only</label>
     <span class="status">Logistics reference (read-only) · maintained via chat / the event pipeline</span></div>`;
   let list=events.slice();
-  list.sort((a,b)=>{const da=a.date?a.date.getTime():Infinity,db=b.date?b.date.getTime():Infinity;return da-db;});
+  list.sort((a,b)=>{const da=a.date?a.date.getTime():null,db=b.date?b.date.getTime():null;
+    if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return db-da;});
   const q=f.q.toLowerCase();
   list=list.filter(e=>{
     if(f.type&&e.type!==f.type)return false;
@@ -334,7 +346,8 @@ function renderEvents(){
 function wireFilters(){
   const q=$("#q");if(q)q.oninput=()=>{f.q=q.value;render();setTimeout(()=>{const e=$("#q");if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},0);};
   ["fstatus","fprio","ftype"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{f[id.replace("f","")]=el.value;render();};});
-  const up=$("#fupcoming");if(up)up.onchange=()=>{f.upcoming=up.checked;render();};}
+  const up=$("#fupcoming");if(up)up.onchange=()=>{f.upcoming=up.checked;render();};
+  const at=$("#addtask");if(at)at.onclick=()=>addTask();}
 
 /* save */
 function aoaDates(ws,col,n){for(let r=2;r<=n+1;r++){const c=ws[col+r];if(c&&c.t==="d")c.z="yyyy-mm-dd";}}
