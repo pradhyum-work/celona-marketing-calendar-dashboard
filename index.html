@@ -101,7 +101,7 @@ input.tgt{width:135px}.past{color:var(--red);font-weight:700}
 <script>
 const STATUSES=["Not started","In progress","Blocked","Done"];
 const PRIOS=["","P0","P1","P2"];
-const DEFAULT_EMAILS={"Pradhyum Ramkumar":"pramkumar@celona.io","Greg LeBeau":"greg@celona.io","Pepper Marketing":""};
+const DEFAULT_EMAILS={};  // intentionally empty — add addresses at runtime via the ⚙ Emails dialog (saved in your browser)
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const $=s=>document.querySelector(s);
 let workbook=null,fileHandle=null,fileName="",tasks=[],events=[],dirty=false,view="event";
@@ -126,7 +126,7 @@ function idb(mode,fn){return new Promise((res,rej)=>{const o=indexedDB.open("mkt
 const idbGet=k=>idb("readonly",st=>st.get(k));const idbSet=(k,v)=>idb("readwrite",st=>st.put(v,k));
 
 /* emails */
-function loadEmails(){try{const j=localStorage.getItem("mktcal_emails");if(j){const o=JSON.parse(j);return{map:Object.assign({},DEFAULT_EMAILS,o.map),cc:o.cc??"pramkumar@celona.io"};}}catch(e){}return{map:{...DEFAULT_EMAILS},cc:"pramkumar@celona.io"};}
+function loadEmails(){try{const j=localStorage.getItem("mktcal_emails");if(j){const o=JSON.parse(j);return{map:Object.assign({},DEFAULT_EMAILS,o.map),cc:o.cc??""};}}catch(e){}return{map:{...DEFAULT_EMAILS},cc:""};}
 function saveEmails(){try{localStorage.setItem("mktcal_emails",JSON.stringify(EMAILS));}catch(e){}}
 const names=s=>String(s||"").split(/[\/,+&]| and /).map(x=>x.trim()).filter(Boolean);
 const emailsFor=s=>[...new Set(names(s).map(n=>EMAILS.map[n]).filter(Boolean))];
@@ -390,7 +390,7 @@ function modal(html){$("#modal").innerHTML=`<div class="modal"><div class="box">
   $("#modal .modal").addEventListener("click",e=>{if(e.target.classList.contains("modal"))closeModal();});}
 function emailSettings(){
   const ns=[...new Set(tasks.flatMap(o=>[...names(o.owner),...names(o.assigned)]))].sort();
-  modal(`<h2>Email addresses</h2><p class="status">Best-guess @celona.io — please verify. Saved in this browser.</p>
+  modal(`<h2>Email addresses</h2><p class="status">Enter each person's address. Saved in this browser only.</p>
     ${ns.map(n=>`<div class="erow"><span class="nm">${esc(n)}</span><input data-n="${escA(n)}" value="${escA(EMAILS.map[n]||"")}" placeholder="name@celona.io"></div>`).join("")}
     <div class="erow"><span class="nm">CC</span><input id="ccin" value="${escA(EMAILS.cc)}"></div>
     <div style="margin-top:14px"><button class="btn" id="esave">Save</button> <span id="emsg" class="status"></span></div>`);
