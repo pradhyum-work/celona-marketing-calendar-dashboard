@@ -272,8 +272,17 @@ function taskRow(t){const i=tasks.indexOf(t);
 
 /* event order: by parsed event date asc (nulls last), then name */
 function eventOrder(){const seen=[...new Set(tasks.map(t=>t.event||"(no event)"))];
-  const dateOf={};events.forEach(e=>{dateOf[e.name]=e.date?e.date.getTime():Infinity;});
-  return seen.sort((a,b)=>{const da=dateOf[a]??Infinity,db=dateOf[b]??Infinity;if(da!==db)return da-db;return String(a).localeCompare(String(b));});}
+  const dateOf={};events.forEach(e=>{dateOf[e.name]=e.date?e.date.getTime():null;});
+  const today=TODAY.getTime();
+  return seen.sort((a,b)=>{
+    const da=dateOf[a]??null,db=dateOf[b]??null;
+    const pa=(da!==null&&da<today)?1:0,pb=(db!==null&&db<today)?1:0; // upcoming/undated first, past last
+    if(pa!==pb)return pa-pb;
+    if(pa===0){ // upcoming or undated → soonest first, undated last
+      if(da===null&&db===null)return String(a).localeCompare(String(b));
+      if(da===null)return 1;if(db===null)return -1;return da-db;}
+    return db-da; // past → most recent first
+  });}
 
 function filterBar(extra){
   return `<div class="viewbar"><input id="q" placeholder="Search…" value="${escA(f.q)}">
