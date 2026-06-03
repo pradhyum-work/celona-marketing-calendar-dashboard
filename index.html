@@ -32,7 +32,7 @@ tr.cat td{background:var(--green);font-weight:700;color:#06302b;font-size:13px;p
 tr.cat td .meta{font-weight:500;color:#0a4a41;font-size:11.5px;margin-left:8px}
 tr.sub td{background:var(--yellow);font-weight:600;color:#5a4500;font-size:12px;padding:6px 10px 6px 22px}
 tr.bucket td{background:var(--navy);color:#fff;font-weight:700;font-size:12.5px;padding:8px 10px}
-tr.bucket.overdue td{background:var(--red)}tr.bucket.week td{background:var(--amber)}tr.bucket.high td{background:#6941c6}
+tr.bucket.overdue td{background:var(--red)}tr.bucket.week td{background:var(--amber)}tr.bucket.high td{background:#6941c6}tr.bucket.done td{background:#067647}
 tr.summary td{background:#f7faff}
 td.id{color:var(--muted);font-weight:600;width:48px}
 td.deliv{font-weight:500;min-width:210px}
@@ -291,11 +291,12 @@ function renderByCat(){
   html+='</tbody></table>';$("#body").innerHTML=html;wireFilters();bind();}
 
 /* due-date view with High-priority bucket */
-function bucketOf(t){if(!isDone(t.status)&&t.due&&t.due<TODAY)return 0;
+function bucketOf(t){if(isDone(t.status))return 6;
+  if(t.due&&t.due<TODAY)return 0;
   if(t.due){const d=Math.round((t.due-TODAY)/864e5);if(d<=7)return 1;if(d<=14)return 2;}
-  if(!isDone(t.status)&&prRank(t.priority)<=1)return 3;
+  if(prRank(t.priority)<=1)return 3;
   if(t.due)return 4;return 5;}
-const BUCKETS=[["overdue","⛔ Overdue"],["week","🔥 Due this week"],["","📅 Next 2 weeks"],["high","⭐ High priority (P0 / P1)"],["","Later"],["","No due date"]];
+const BUCKETS=[["overdue","⛔ Overdue"],["week","🔥 Due this week"],["","📅 Next 2 weeks"],["high","⭐ High priority (P0 / P1)"],["","Later"],["","No due date"],["done","✅ Completed"]];
 function renderDue(){
   let list=tasks.filter(matchTask);
   list.sort((a,b)=>{const ba=bucketOf(a),bb=bucketOf(b);if(ba!==bb)return ba-bb;
