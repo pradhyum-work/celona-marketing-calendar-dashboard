@@ -272,7 +272,7 @@ function renderByEvent(){
     if(!items.length)return;any=true;
     const meta=events.find(e=>e.name===ev);
     const tag=meta?`<span class="meta">${esc(meta.dateRaw?String(meta.dateRaw).slice(0,12):niceD(meta.date))} · ${esc(meta.type)}</span>`:"";
-    html+=`<tr class="cat"><td colspan="10">${esc(ev)}${tag}</td></tr>`;
+    html+=`<tr class="cat"><td colspan="10">${esc(ev)}${tag}<button class="btn sm alt addev" data-ev="${escA(ev==='(no event)'?'':ev)}" style="margin-left:10px">➕ task</button></td></tr>`;
     items.sort((a,b)=>{const ta=a.due?a.due.getTime():Infinity,tb=b.due?b.due.getTime():Infinity;return ta-tb||prRank(a.priority)-prRank(b.priority);});
     items.forEach(t=>html+=taskRow(t));
   });
@@ -347,7 +347,8 @@ function wireFilters(){
   const q=$("#q");if(q)q.oninput=()=>{f.q=q.value;render();setTimeout(()=>{const e=$("#q");if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},0);};
   ["fstatus","fprio","ftype"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=()=>{f[id.replace("f","")]=el.value;render();};});
   const up=$("#fupcoming");if(up)up.onchange=()=>{f.upcoming=up.checked;render();};
-  const at=$("#addtask");if(at)at.onclick=()=>addTask();}
+  const at=$("#addtask");if(at)at.onclick=()=>addTask();
+  $("#body").querySelectorAll(".addev").forEach(b=>b.onclick=()=>addTask(b.dataset.ev));}
 
 /* save */
 function aoaDates(ws,col,n){for(let r=2;r<=n+1;r++){const c=ws[col+r];if(c&&c.t==="d")c.z="yyyy-mm-dd";}}
